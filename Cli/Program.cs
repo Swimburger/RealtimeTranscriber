@@ -10,12 +10,22 @@ var transcriber = new RealtimeTranscriber(config["AssemblyAI:ApiKey"]!)
     SampleRate = 16_000,
     WordBoost = new[] { "word1", "word2" }
 };
-transcriber.SessionBegins += async (object sender, EventArgs args) => Console.WriteLine("Session begins");
-transcriber.PartialTranscriptReceived += async (object sender, EventArgs args) => Console.WriteLine("Partial transcript");
-transcriber.FinalTranscriptReceived += async (object sender, EventArgs args) => Console.WriteLine("Final transcript");
-transcriber.TranscriptReceived += async (object sender, EventArgs args) => Console.WriteLine("Transcript");
-transcriber.ErrorReceived += async (object sender, EventArgs args) => Console.WriteLine("Error");
-transcriber.Closed += async (object sender, EventArgs args) => Console.WriteLine("Close");
+transcriber.SessionBegins
+    += async (sender, args) => Console.WriteLine($"""
+                                                  Session begins:
+                                                  - Session ID: {args.SessionId}
+                                                  - Expires at: {args.ExpiresAt}
+                                                  """);
+transcriber.PartialTranscriptReceived +=
+    async (sender, args) => Console.WriteLine("Partial transcript: {0}", args.Transcript.Text);
+transcriber.FinalTranscriptReceived += 
+    async (sender, args) => Console.WriteLine("Final transcript: {0}", args.Transcript.Text);
+transcriber.TranscriptReceived += 
+    async (sender, args) => Console.WriteLine("Transcript: {0}", args.Transcript.Text);
+transcriber.ErrorReceived += 
+    async (sender, args) => Console.WriteLine("Error: {0}", args.Error);
+transcriber.Closed += 
+    async (sender, args) => Console.WriteLine("Closed");
 
 await transcriber.ConnectAsync();
 
