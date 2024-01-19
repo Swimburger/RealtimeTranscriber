@@ -14,7 +14,7 @@ transcriber.SessionBegins += async (object sender, EventArgs args) => Console.Wr
 transcriber.PartialTranscriptReceived += async (object sender, EventArgs args) => Console.WriteLine("Partial transcript");
 transcriber.FinalTranscriptReceived += async (object sender, EventArgs args) => Console.WriteLine("Final transcript");
 transcriber.TranscriptReceived += async (object sender, EventArgs args) => Console.WriteLine("Transcript");
-transcriber.Error += async (object sender, EventArgs args) => Console.WriteLine("Error");
+transcriber.ErrorReceived += async (object sender, EventArgs args) => Console.WriteLine("Error");
 transcriber.Closed += async (object sender, EventArgs args) => Console.WriteLine("Close");
 
 await transcriber.ConnectAsync();

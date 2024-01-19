@@ -35,7 +35,7 @@ namespace Lib
         public event PartialTranscriptEventHandler PartialTranscriptReceived;
         public event FinalTranscriptEventHandler FinalTranscriptReceived;
         public event TranscriptEventHandler TranscriptReceived;
-        public event ErrorEventHandler Error;
+        public event ErrorEventHandler ErrorReceived;
         public event ClosedEventHandler Closed;
 
         public RealtimeTranscriber(string authorization) : this(authorization, RealtimeCredentialType.ApiKey)
@@ -108,7 +108,12 @@ namespace Lib
 
                 var message = await JsonSerializer.DeserializeAsync<JsonDocument>(ms, (JsonSerializerOptions)null, ct)
                     .ConfigureAwait(false);
-
+                if (message.RootElement.TryGetProperty("error", out var errorProperty))
+                {
+                    var error = errorProperty.GetString();
+                    await OnErrorReceived(error);
+                }
+                
                 // Console.WriteLine(JsonSerializer.Serialize(message));
                 if (message.RootElement.TryGetProperty("message_type", out var messageTypeProperty))
                 {
@@ -143,12 +148,6 @@ namespace Lib
             throw new Exception();
         }
 
-        private async Task OnClosed(WebSocketReceiveResult result)
-        {
-            if (Closed != null)
-                await Closed.Invoke(this, null);
-        }
-
         private async Task OnSessionBegins(JsonDocument message)
         {
             if (SessionBegins != null)
@@ -176,6 +175,18 @@ namespace Lib
         private void OnSessionTerminated(JsonDocument message)
         {
             _sessionTerminatedTaskCompletionSource?.TrySetResult(true);
+        }
+
+        private async Task OnClosed(WebSocketReceiveResult result)
+        {
+            if (Closed != null)
+                await Closed.Invoke(this, null);
+        }
+
+        private async Task OnErrorReceived(string error)
+        {
+            if (ErrorReceived != null)
+                await ErrorReceived.Invoke(this, null);
         }
 
         public Task SendAudio(ReadOnlyMemory<byte> audio) => SendAudio(audio, CancellationToken.None);
