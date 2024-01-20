@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Lib
@@ -30,6 +31,9 @@ namespace Lib
         private readonly RealtimeCredentialType _credentialType;
         private readonly ClientWebSocket _socket;
         private TaskCompletionSource<bool> _sessionTerminatedTaskCompletionSource;
+        private Channel<Transcript> transcriptChannel;
+        private Channel<PartialTranscript> partialTranscriptChannel;
+        private Channel<FinalTranscript> finalTranscriptChannel;
         public uint SampleRate { get; set; }
         public IEnumerable<string> WordBoost { get; set; } = Enumerable.Empty<string>();
         public event SessionBeginsEventHandler SessionBegins;
@@ -99,6 +103,10 @@ namespace Lib
             }
 
             await OnSessionBegins(jsonDocument).ConfigureAwait(false);
+            
+            transcriptChannel = Channel.CreateUnbounded<Transcript>();
+            partialTranscriptChannel = Channel.CreateUnbounded<PartialTranscript>();
+            finalTranscriptChannel = Channel.CreateUnbounded<FinalTranscript>();
 
             Task.Run(async () => await ListenAsync(ct).ConfigureAwait(false), ct);
 
@@ -227,6 +235,7 @@ namespace Lib
 
         private async Task OnPartialTranscriptReceived(PartialTranscript transcript)
         {
+            await partialTranscriptChannel.Writer.WriteAsync(transcript);
             if (PartialTranscriptReceived != null)
             {
                 await PartialTranscriptReceived.Invoke(this, new PartialTranscriptEventArgs
@@ -238,6 +247,7 @@ namespace Lib
 
         private async Task OnFinalTranscriptReceived(FinalTranscript transcript)
         {
+            await finalTranscriptChannel.Writer.WriteAsync(transcript);
             if (FinalTranscriptReceived != null)
             {
                 await FinalTranscriptReceived.Invoke(this, new FinalTranscriptEventArgs
@@ -249,6 +259,7 @@ namespace Lib
 
         private async Task OnTranscriptReceived(Transcript transcript)
         {
+            await transcriptChannel.Writer.WriteAsync(transcript);
             if (TranscriptReceived != null)
             {
                 await TranscriptReceived.Invoke(this, new TranscriptEventArgs
@@ -265,6 +276,7 @@ namespace Lib
 
         private async Task OnClosed(WebSocketReceiveResult result)
         {
+            TryCompleteChannels();
             if (Closed != null)
             {
                 await Closed.Invoke(this, new ClosedEventArgs
@@ -298,6 +310,17 @@ namespace Lib
             => await _socket.SendAsync(audio, WebSocketMessageType.Binary, true, ct)
                 .ConfigureAwait(false);
 
+        public IAsyncEnumerable<Transcript> GetPartialTranscriptsAsync() => GetPartialTranscriptsAsync(CancellationToken.None);
+        public IAsyncEnumerable<Transcript> GetPartialTranscriptsAsync(CancellationToken ct) 
+            => partialTranscriptChannel.Reader.ReadAllAsync(ct);
+
+        public IAsyncEnumerable<Transcript> GetFinalTranscriptsAsync() => GetFinalTranscriptsAsync(CancellationToken.None);
+        public IAsyncEnumerable<Transcript> GetFinalTranscriptsAsync(CancellationToken ct) 
+            => finalTranscriptChannel.Reader.ReadAllAsync(ct);
+        public IAsyncEnumerable<Transcript> GetTranscriptsAsync() => GetTranscriptsAsync(CancellationToken.None);
+        public IAsyncEnumerable<Transcript> GetTranscriptsAsync(CancellationToken ct) 
+            => transcriptChannel.Reader.ReadAllAsync(ct);
+        
         public void Dispose()
         {
             if (_socket.State == WebSocketState.Open)
@@ -335,6 +358,18 @@ namespace Lib
 
             await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", ct)
                 .ConfigureAwait(false);
+            
+            TryCompleteChannels();
+        }
+
+        private void TryCompleteChannels()
+        {
+            transcriptChannel?.Writer.TryComplete();
+            partialTranscriptChannel?.Writer.TryComplete();
+            finalTranscriptChannel?.Writer.TryComplete();
+            transcriptChannel = null;
+            partialTranscriptChannel = null;
+            finalTranscriptChannel = null;
         }
     }
 

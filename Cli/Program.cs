@@ -18,19 +18,17 @@ transcriber.SessionBegins
                                                   """);
 transcriber.PartialTranscriptReceived +=
     async (sender, args) => Console.WriteLine("Partial transcript: {0}", args.Transcript.Text);
-transcriber.FinalTranscriptReceived += 
+transcriber.FinalTranscriptReceived +=
     async (sender, args) => Console.WriteLine("Final transcript: {0}", args.Transcript.Text);
 transcriber.TranscriptReceived += 
-    async (sender, args) => Console.WriteLine("Transcript: {0}", args.Transcript.Text);
-transcriber.ErrorReceived += 
+     async (sender, args) => Console.WriteLine("Transcript: {0}", args.Transcript.Text);
+transcriber.ErrorReceived +=
     async (sender, args) => Console.WriteLine("Error: {0}", args.Error);
-transcriber.Closed += 
+transcriber.Closed +=
     async (sender, args) => Console.WriteLine("Closed");
 
 await transcriber.ConnectAsync();
-
 await SendAudio();
-
 await transcriber.Close();
 
 async Task SendAudio()
