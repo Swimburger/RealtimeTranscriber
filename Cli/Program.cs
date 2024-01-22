@@ -5,7 +5,7 @@ var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
     .Build();
 
-var transcriber = new RealtimeTranscriber(config["AssemblyAI:ApiKey"]!)
+var transcriber = new RealtimeTranscriber((ApiKey)config["AssemblyAI:ApiKey"]!)
 {
     SampleRate = 16_000,
     WordBoost = new[] { "word1", "word2" }
@@ -13,15 +13,15 @@ var transcriber = new RealtimeTranscriber(config["AssemblyAI:ApiKey"]!)
 transcriber.SessionBegins
     += async (sender, args) => Console.WriteLine($"""
                                                   Session begins:
-                                                  - Session ID: {args.SessionId}
-                                                  - Expires at: {args.ExpiresAt}
+                                                  - Session ID: {args.Result.SessionId}
+                                                  - Expires at: {args.Result.ExpiresAt}
                                                   """);
 transcriber.PartialTranscriptReceived +=
-    async (sender, args) => Console.WriteLine("Partial transcript: {0}", args.Transcript.Text);
+    async (sender, args) => Console.WriteLine("Partial transcript: {0}", args.Result.Text);
 transcriber.FinalTranscriptReceived +=
-    async (sender, args) => Console.WriteLine("Final transcript: {0}", args.Transcript.Text);
+    async (sender, args) => Console.WriteLine("Final transcript: {0}", args.Result.Text);
 transcriber.TranscriptReceived += 
-     async (sender, args) => Console.WriteLine("Transcript: {0}", args.Transcript.Text);
+     async (sender, args) => Console.WriteLine("Transcript: {0}", args.Result.Text);
 transcriber.ErrorReceived +=
     async (sender, args) => Console.WriteLine("Error: {0}", args.Error);
 transcriber.Closed +=
@@ -29,8 +29,9 @@ transcriber.Closed +=
 
 await transcriber.ConnectAsync();
 await SendAudio();
-await transcriber.Close();
+await transcriber.CloseAsync();
 
+// Mock of streaming audio from a microphone
 async Task SendAudio()
 {
     await using var fileStream = File.OpenRead("./gore-short.wav");
