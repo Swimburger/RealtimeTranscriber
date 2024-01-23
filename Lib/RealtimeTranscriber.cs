@@ -60,7 +60,7 @@ namespace Lib
         private const string RealtimeServiceEndpoint = "wss://api.assemblyai.com/v2/realtime/ws";
         private readonly Token _token;
         private readonly ApiKey _apiKey;
-        private readonly ClientWebSocket _socket;
+        private readonly ClientWebSocket _socket = new ClientWebSocket();
         private TaskCompletionSource<bool> _sessionTerminatedTaskCompletionSource;
         private Channel<Transcript> _transcriptChannel;
         private Channel<PartialTranscript> _partialTranscriptChannel;
@@ -116,7 +116,7 @@ namespace Lib
         /// </summary>
         /// <param name="apiKey">Your AssemblyAI API key to authenticate with the AssemblyAI real-time transcriber.</param>
         /// <exception cref="ArgumentNullException"></exception>
-        public RealtimeTranscriber(ApiKey apiKey) : this()
+        public RealtimeTranscriber(ApiKey apiKey)
         {
             if (apiKey == null || string.IsNullOrEmpty(apiKey.Value))
             {
@@ -132,7 +132,7 @@ namespace Lib
         /// </summary>
         /// <param name="token"></param>
         /// <exception cref="ArgumentNullException"></exception>
-        public RealtimeTranscriber(Token token) : this()
+        public RealtimeTranscriber(Token token)
         {
             if (token == null || string.IsNullOrEmpty(token.Value))
             {
@@ -140,11 +140,6 @@ namespace Lib
             }
 
             _token = token;
-        }
-
-        private RealtimeTranscriber()
-        {
-            _socket = new ClientWebSocket();
         }
 
         /// <summary>
@@ -464,14 +459,14 @@ namespace Lib
                 .ConfigureAwait(false);
 
         /// <summary>
-        /// Experimental. Get partial transcripts as an async enumerable.
+        /// Experimental! Get partial transcripts as an async enumerable.
         /// </summary>
         /// <returns>Partial transcripts as async enumerable</returns>
         public IAsyncEnumerable<PartialTranscript> GetPartialTranscriptsAsync() =>
             GetPartialTranscriptsAsync(CancellationToken.None);
 
         /// <summary>
-        /// Experimental. Get partial transcripts as an async enumerable.
+        /// Experimental! Get partial transcripts as an async enumerable.
         /// </summary>
         /// <param name="ct">Cancellation token to stop reading partial transcripts.</param>
         /// <returns>Partial transcripts as async enumerable</returns>
@@ -479,14 +474,14 @@ namespace Lib
             => _partialTranscriptChannel.Reader.ReadAllAsync(ct);
 
         /// <summary>
-        /// Experimental. Get final transcripts as an async enumerable.
+        /// Experimental! Get final transcripts as an async enumerable.
         /// </summary>
         /// <returns>Final transcripts as async enumerable</returns>
         public IAsyncEnumerable<FinalTranscript> GetFinalTranscriptsAsync() =>
             GetFinalTranscriptsAsync(CancellationToken.None);
 
         /// <summary>
-        /// Experimental. Get final transcripts as an async enumerable.
+        /// Experimental! Get final transcripts as an async enumerable.
         /// </summary>
         /// <param name="ct">Cancellation token to stop reading final transcripts.</param>
         /// <returns>Final transcripts as async enumerable</returns>
@@ -494,13 +489,13 @@ namespace Lib
             => _finalTranscriptChannel.Reader.ReadAllAsync(ct);
 
         /// <summary>
-        /// Experimental. Get partial and final transcripts as an async enumerable.
+        /// Experimental! Get partial and final transcripts as an async enumerable.
         /// </summary>
         /// <returns>Partial and final transcripts as async enumerable</returns>
         public IAsyncEnumerable<Transcript> GetTranscriptsAsync() => GetTranscriptsAsync(CancellationToken.None);
 
         /// <summary>
-        /// Experimental. Get partial and final transcripts as an async enumerable.
+        /// Experimental! Get partial and final transcripts as an async enumerable.
         /// </summary>
         /// <param name="ct">Cancellation token to stop reading transcripts.</param>
         /// <returns>Partial and final transcripts as async enumerable</returns>
