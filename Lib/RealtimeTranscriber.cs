@@ -9,20 +9,22 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Lib
 {
-    public delegate Task SessionBeginsEventHandler(RealtimeTranscriber sender, SessionBeginsEventArgs evt);
+    public delegate void SessionBeginsEventHandler(RealtimeTranscriber sender, SessionBeginsEventArgs evt);
 
-    public delegate Task PartialTranscriptEventHandler(RealtimeTranscriber sender, PartialTranscriptEventArgs evt);
+    public delegate void PartialTranscriptEventHandler(RealtimeTranscriber sender, PartialTranscriptEventArgs evt);
 
-    public delegate Task FinalTranscriptEventHandler(RealtimeTranscriber sender, FinalTranscriptEventArgs evt);
+    public delegate void FinalTranscriptEventHandler(RealtimeTranscriber sender, FinalTranscriptEventArgs evt);
 
-    public delegate Task TranscriptEventHandler(RealtimeTranscriber sender, TranscriptEventArgs evt);
+    public delegate void TranscriptEventHandler(RealtimeTranscriber sender, TranscriptEventArgs evt);
 
-    public delegate Task ErrorEventHandler(RealtimeTranscriber sender, ErrorEventArgs evt);
+    public delegate void ErrorEventHandler(RealtimeTranscriber sender, ErrorEventArgs evt);
 
-    public delegate Task ClosedEventHandler(RealtimeTranscriber sender, ClosedEventArgs evt);
+    public delegate void ClosedEventHandler(RealtimeTranscriber sender, ClosedEventArgs evt);
 
     /// <summary>
     /// Use your AssemblyAI API key to authenticate with the AssemblyAI real-time transcriber.
@@ -189,9 +191,9 @@ namespace Lib
             if (jsonDocument.RootElement.TryGetProperty("error", out var errorProperty))
             {
                 var error = errorProperty.GetString();
-                await OnErrorReceived(error).ConfigureAwait(false);
+                OnErrorReceived(error);
                 var closeMessage = await ReceiveCloseMessage(ct).ConfigureAwait(false);
-                await OnClosed(closeMessage).ConfigureAwait(false);
+                OnClosed(closeMessage);
                 throw new Exception(error);
             }
 
@@ -206,13 +208,15 @@ namespace Lib
             }
 
             var sessionBeginsMessage = jsonDocument.Deserialize<SessionBeginsMessage>();
-            await OnSessionBegins(sessionBeginsMessage).ConfigureAwait(false);
+            OnSessionBegins(sessionBeginsMessage);
 
             _transcriptChannel = Channel.CreateUnbounded<Transcript>();
             _partialTranscriptChannel = Channel.CreateUnbounded<PartialTranscript>();
             _finalTranscriptChannel = Channel.CreateUnbounded<FinalTranscript>();
 
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             Task.Run(async () => await ListenAsync(ct).ConfigureAwait(false), ct);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
             return sessionBeginsMessage;
         }
@@ -243,8 +247,7 @@ namespace Lib
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await OnClosed(result)
-                        .ConfigureAwait(false);
+                    OnClosed(result);
                     return;
                 }
 
@@ -255,7 +258,7 @@ namespace Lib
                 if (message.RootElement.TryGetProperty("error", out var errorProperty))
                 {
                     var error = errorProperty.GetString();
-                    await OnErrorReceived(error);
+                    OnErrorReceived(error);
                 }
 
                 // Console.WriteLine(JsonSerializer.Serialize(message));
@@ -343,12 +346,9 @@ namespace Lib
         /// Called when session begins message is received. Calls the SessionBegins event.
         /// </summary>
         /// <param name="sessionBeginsMessage"></param>
-        private async Task OnSessionBegins(SessionBeginsMessage sessionBeginsMessage)
+        private void OnSessionBegins(SessionBeginsMessage sessionBeginsMessage)
         {
-            if (SessionBegins != null)
-            {
-                await SessionBegins.Invoke(this, new SessionBeginsEventArgs(sessionBeginsMessage));
-            }
+            SessionBegins?.Invoke(this, new SessionBeginsEventArgs(sessionBeginsMessage));
         }
 
         /// <summary>
@@ -358,10 +358,7 @@ namespace Lib
         private async Task OnPartialTranscriptReceived(PartialTranscript transcript)
         {
             await _partialTranscriptChannel.Writer.WriteAsync(transcript);
-            if (PartialTranscriptReceived != null)
-            {
-                await PartialTranscriptReceived.Invoke(this, new PartialTranscriptEventArgs(transcript));
-            }
+            PartialTranscriptReceived?.Invoke(this, new PartialTranscriptEventArgs(transcript));
         }
 
         /// <summary>
@@ -371,10 +368,7 @@ namespace Lib
         private async Task OnFinalTranscriptReceived(FinalTranscript transcript)
         {
             await _finalTranscriptChannel.Writer.WriteAsync(transcript);
-            if (FinalTranscriptReceived != null)
-            {
-                await FinalTranscriptReceived.Invoke(this, new FinalTranscriptEventArgs(transcript));
-            }
+            FinalTranscriptReceived?.Invoke(this, new FinalTranscriptEventArgs(transcript));
         }
 
         /// <summary>
@@ -384,10 +378,7 @@ namespace Lib
         private async Task OnTranscriptReceived(Transcript transcript)
         {
             await _transcriptChannel.Writer.WriteAsync(transcript);
-            if (TranscriptReceived != null)
-            {
-                await TranscriptReceived.Invoke(this, new TranscriptEventArgs(transcript));
-            }
+            TranscriptReceived?.Invoke(this, new TranscriptEventArgs(transcript));
         }
 
         /// <summary>
@@ -398,32 +389,26 @@ namespace Lib
             _sessionTerminatedTaskCompletionSource?.TrySetResult(true);
         }
 
-        private async Task OnClosed(WebSocketReceiveResult result)
+        private void OnClosed(WebSocketReceiveResult result)
         {
             TryCompleteChannels();
-            if (Closed != null)
+            Closed?.Invoke(this, new ClosedEventArgs
             {
-                await Closed.Invoke(this, new ClosedEventArgs
-                {
-                    Code = (int)result.CloseStatus!,
-                    Reason = result.CloseStatusDescription
-                });
-            }
+                Code = (int)result.CloseStatus!,
+                Reason = result.CloseStatusDescription
+            });
         }
 
         /// <summary>
         /// Called when an error message is received. Calls the ErrorReceived event.
         /// </summary>
         /// <param name="error"></param>
-        private async Task OnErrorReceived(string error)
+        private void OnErrorReceived(string error)
         {
-            if (ErrorReceived != null)
+            ErrorReceived?.Invoke(this, new ErrorEventArgs
             {
-                await ErrorReceived.Invoke(this, new ErrorEventArgs
-                {
-                    Error = error
-                });
-            }
+                Error = error
+            });
         }
 
         /// <summary>

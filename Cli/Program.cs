@@ -10,22 +10,16 @@ var transcriber = new RealtimeTranscriber((ApiKey)config["AssemblyAI:ApiKey"]!)
     SampleRate = 16_000,
     WordBoost = new[] { "word1", "word2" }
 };
-transcriber.SessionBegins
-    += async (sender, args) => Console.WriteLine($"""
-                                                  Session begins:
-                                                  - Session ID: {args.Result.SessionId}
-                                                  - Expires at: {args.Result.ExpiresAt}
-                                                  """);
-transcriber.PartialTranscriptReceived +=
-    async (sender, args) => Console.WriteLine("Partial transcript: {0}", args.Result.Text);
-transcriber.FinalTranscriptReceived +=
-    async (sender, args) => Console.WriteLine("Final transcript: {0}", args.Result.Text);
-transcriber.TranscriptReceived += 
-     async (sender, args) => Console.WriteLine("Transcript: {0}", args.Result.Text);
-transcriber.ErrorReceived +=
-    async (sender, args) => Console.WriteLine("Error: {0}", args.Error);
-transcriber.Closed +=
-    async (sender, args) => Console.WriteLine("Closed");
+transcriber.SessionBegins += (sender, args) => Console.WriteLine($"""
+                                                                  Session begins:
+                                                                  - Session ID: {args.Result.SessionId}
+                                                                  - Expires at: {args.Result.ExpiresAt}
+                                                                  """);
+transcriber.PartialTranscriptReceived += (_, args) => Console.WriteLine("Partial transcript: {0}", args.Result.Text);
+transcriber.FinalTranscriptReceived += (_, args) => Console.WriteLine("Final transcript: {0}", args.Result.Text);
+transcriber.TranscriptReceived += (_, args) => Console.WriteLine("Transcript: {0}", args.Result.Text);
+transcriber.ErrorReceived += (_, args) => Console.WriteLine("Error: {0}", args.Error);
+transcriber.Closed += (_, _) => Console.WriteLine("Closed");
 
 await transcriber.ConnectAsync();
 await SendAudio();
