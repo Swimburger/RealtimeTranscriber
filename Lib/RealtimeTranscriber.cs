@@ -396,48 +396,25 @@ namespace Lib
                 .ConfigureAwait(false);
 
         /// <summary>
-        /// Experimental! Get partial transcripts as an async enumerable.
+        /// Experimental! Get a reader to read partial transcripts.
         /// </summary>
-        /// <returns>Partial transcripts as async enumerable</returns>
-        public IAsyncEnumerable<PartialTranscript> GetPartialTranscriptsAsync() =>
-            GetPartialTranscriptsAsync(CancellationToken.None);
+        /// <returns>Reader to read partial transcripts</returns>
+        public PartialTranscriptReader GetPartialTranscriptReader()
+            => new PartialTranscriptReader(_partialTranscriptChannel.Reader);
 
         /// <summary>
-        /// Experimental! Get partial transcripts as an async enumerable.
+        /// Experimental! Get a reader to read final transcripts.
         /// </summary>
-        /// <param name="ct">Cancellation token to stop reading partial transcripts.</param>
-        /// <returns>Partial transcripts as async enumerable</returns>
-        public IAsyncEnumerable<PartialTranscript> GetPartialTranscriptsAsync(CancellationToken ct)
-            => _partialTranscriptChannel.Reader.ReadAllAsync(ct);
+        /// <returns>Reader to read final transcripts</returns>
+        public FinalTranscriptReader GetFinalTranscriptReader()
+            => new FinalTranscriptReader(_finalTranscriptChannel.Reader);
 
         /// <summary>
-        /// Experimental! Get final transcripts as an async enumerable.
+        /// Experimental! Get a reader to read partial and final transcripts.
         /// </summary>
-        /// <returns>Final transcripts as async enumerable</returns>
-        public IAsyncEnumerable<FinalTranscript> GetFinalTranscriptsAsync() =>
-            GetFinalTranscriptsAsync(CancellationToken.None);
-
-        /// <summary>
-        /// Experimental! Get final transcripts as an async enumerable.
-        /// </summary>
-        /// <param name="ct">Cancellation token to stop reading final transcripts.</param>
-        /// <returns>Final transcripts as async enumerable</returns>
-        public IAsyncEnumerable<FinalTranscript> GetFinalTranscriptsAsync(CancellationToken ct)
-            => _finalTranscriptChannel.Reader.ReadAllAsync(ct);
-
-        /// <summary>
-        /// Experimental! Get partial and final transcripts as an async enumerable.
-        /// </summary>
-        /// <returns>Partial and final transcripts as async enumerable</returns>
-        public IAsyncEnumerable<Transcript> GetTranscriptsAsync() => GetTranscriptsAsync(CancellationToken.None);
-
-        /// <summary>
-        /// Experimental! Get partial and final transcripts as an async enumerable.
-        /// </summary>
-        /// <param name="ct">Cancellation token to stop reading transcripts.</param>
-        /// <returns>Partial and final transcripts as async enumerable</returns>
-        public IAsyncEnumerable<Transcript> GetTranscriptsAsync(CancellationToken ct)
-            => _transcriptChannel.Reader.ReadAllAsync(ct);
+        /// <returns>Reader to read partial and final transcripts</returns>
+        public TranscriptReader GetTranscriptReader()
+            => new TranscriptReader(_transcriptChannel.Reader);
 
         /// <summary>
         /// Terminates the real-time transcription session, closes the connection, and disposes the real-time transcriber.
@@ -520,6 +497,45 @@ namespace Lib
             _partialTranscriptChannel = null;
             _finalTranscriptChannel = null;
         }
+    }
+
+    public sealed class FinalTranscriptReader : DecoratorReader<FinalTranscript>
+    {
+        internal FinalTranscriptReader(ChannelReader<FinalTranscript> inner) : base(inner)
+        {
+        }
+    }
+    
+    public sealed class PartialTranscriptReader : DecoratorReader<PartialTranscript>
+    {
+        internal PartialTranscriptReader(ChannelReader<PartialTranscript> inner) : base(inner)
+        {
+        }
+    }
+    
+    public sealed class TranscriptReader : DecoratorReader<Transcript>
+    {
+        internal TranscriptReader(ChannelReader<Transcript> inner) : base(inner)
+        {
+        }
+    }
+
+    public class DecoratorReader<T> : ChannelReader<T>
+    {
+        private readonly ChannelReader<T> _inner;
+
+        internal DecoratorReader(ChannelReader<T> inner)
+        {
+            _inner = inner;
+        }
+        
+        public override bool TryRead(out T item) => _inner.TryRead(out item);
+
+        public ValueTask<bool> WaitToReadAsync() => WaitToReadAsync(CancellationToken.None);
+
+        // ReSharper disable once OptionalParameterHierarchyMismatch
+        public override ValueTask<bool> WaitToReadAsync(CancellationToken cancellationToken)
+            => _inner.WaitToReadAsync(cancellationToken);
     }
 
     /// <summary>
