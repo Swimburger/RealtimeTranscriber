@@ -26,47 +26,25 @@ namespace Lib
 
     public delegate void ClosedEventHandler(RealtimeTranscriber sender, ClosedEventArgs evt);
 
-    /// <summary>
-    /// Use your AssemblyAI API key to authenticate with the AssemblyAI real-time transcriber.
-    /// </summary>
-    public class ApiKey
-    {
-        public string Value { internal get; set; }
-
-        public ApiKey(string apiKey)
-        {
-            Value = apiKey;
-        }
-
-        public static explicit operator ApiKey(string apiKey) => new ApiKey(apiKey);
-    }
-
-    /// <summary>
-    /// Use a temporary auth token to authenticate with the AssemblyAI real-time transcriber.
-    /// Learn <see href="https://www.assemblyai.com/docs/guides/real-time-streaming-transcription#creating-temporary-authentication-tokens">how to generate a temporary token here</see>.
-    /// </summary>
-    public class Token
-    {
-        public string Value { internal get; set; }
-
-        public Token(string token)
-        {
-            Value = token;
-        }
-
-        public static explicit operator Token(string token) => new Token(token);
-    }
-
     public class RealtimeTranscriber : IAsyncDisposable, IDisposable
     {
         private const string RealtimeServiceEndpoint = "wss://api.assemblyai.com/v2/realtime/ws";
-        private readonly Token _token;
-        private readonly ApiKey _apiKey;
         private readonly ClientWebSocket _socket = new ClientWebSocket();
         private TaskCompletionSource<bool> _sessionTerminatedTaskCompletionSource;
         private Channel<Transcript> _transcriptChannel;
         private Channel<PartialTranscript> _partialTranscriptChannel;
         private Channel<FinalTranscript> _finalTranscriptChannel;
+
+        /// <summary>
+        /// Use your AssemblyAI API key to authenticate with the AssemblyAI real-time transcriber.
+        /// </summary>
+        public string ApiKey { private get; set; }
+
+        /// <summary>
+        /// Use a temporary auth token to authenticate with the AssemblyAI real-time transcriber.
+        /// Learn <see href="https://www.assemblyai.com/docs/guides/real-time-streaming-transcription#creating-temporary-authentication-tokens">how to generate a temporary token here</see>.
+        /// </summary>
+        public string Token { private get; set; }
 
         /// <summary>
         /// The sample rate of the streamed audio
@@ -114,37 +92,6 @@ namespace Lib
         public event ClosedEventHandler Closed;
 
         /// <summary>
-        /// Create a real-time transcriber authenticating with your AssemblyAI API key.
-        /// </summary>
-        /// <param name="apiKey">Your AssemblyAI API key to authenticate with the AssemblyAI real-time transcriber.</param>
-        /// <exception cref="ArgumentNullException"></exception>
-        public RealtimeTranscriber(ApiKey apiKey)
-        {
-            if (apiKey == null || string.IsNullOrEmpty(apiKey.Value))
-            {
-                throw new ArgumentNullException(nameof(apiKey), "AssemblyAI API key cannot be null.");
-            }
-
-            _apiKey = apiKey;
-        }
-
-        /// <summary>
-        /// Create a real-time transcriber authenticating with a temporary auth token.
-        /// Learn <see href="https://www.assemblyai.com/docs/guides/real-time-streaming-transcription#creating-temporary-authentication-tokens">how to generate a temporary token here</see>.
-        /// </summary>
-        /// <param name="token"></param>
-        /// <exception cref="ArgumentNullException"></exception>
-        public RealtimeTranscriber(Token token)
-        {
-            if (token == null || string.IsNullOrEmpty(token.Value))
-            {
-                throw new ArgumentNullException(nameof(token), "AssemblyAI API key cannot be null.");
-            }
-
-            _token = token;
-        }
-
-        /// <summary>
         /// Connect to AssemblyAI's real-time transcription service, and start listening for messages.
         /// </summary>
         /// <returns>The session begins message</returns>
@@ -157,6 +104,11 @@ namespace Lib
         /// <returns>The session begins message</returns>
         public async Task<SessionBeginsMessage> ConnectAsync(CancellationToken ct)
         {
+            if (string.IsNullOrEmpty(Token) && string.IsNullOrEmpty(ApiKey))
+            {
+                throw new Exception("You must configure ApiKey or Token to authenticate the real-time transcriber.");
+            }
+            
             var urlBuilder = new StringBuilder(RealtimeServiceEndpoint);
             var queryPrefix = "?";
             if (SampleRate != 0)
@@ -177,13 +129,13 @@ namespace Lib
                 queryPrefix = "&";
             }
 
-            if (_token != null)
+            if (!string.IsNullOrEmpty(Token))
             {
-                urlBuilder.AppendFormat("{0}token={1}", queryPrefix, _token.Value);
+                urlBuilder.AppendFormat("{0}token={1}", queryPrefix, Token);
             }
             else
             {
-                _socket.Options.SetRequestHeader("Authorization", _apiKey.Value);
+                _socket.Options.SetRequestHeader("Authorization", ApiKey);
             }
 
             await _socket.ConnectAsync(new Uri(urlBuilder.ToString()), ct).ConfigureAwait(false);
@@ -619,8 +571,6 @@ namespace Lib
         {
         }
     }
-
-
 
     /// <summary>
     /// Event arguments for a partial or final partial transcript.

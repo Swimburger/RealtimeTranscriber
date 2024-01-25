@@ -5,8 +5,9 @@ var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
     .Build();
 
-var transcriber = new RealtimeTranscriber((ApiKey)config["AssemblyAI:ApiKey"]!)
+var transcriber = new RealtimeTranscriber
 {
+    ApiKey = config["AssemblyAI:ApiKey"]!,
     SampleRate = 16_000,
     WordBoost = new[] { "word1", "word2" }
 };

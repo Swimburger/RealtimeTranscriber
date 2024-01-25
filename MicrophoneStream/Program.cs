@@ -1,21 +1,17 @@
-﻿using NAudio.Wave;
+﻿using Lib;
 using Microsoft.Extensions.Configuration;
-using Lib;
+using NAudio.Wave;
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
     .Build();
 
-await using var transcriber = new RealtimeTranscriber((ApiKey)config["AssemblyAI:ApiKey"]!)
+const int sampleRate = 16_000;
+await using var transcriber = new RealtimeTranscriber
 {
-    SampleRate = 16_000,
-    WordBoost = new[] { "word1", "word2" }
+    ApiKey = config["AssemblyAI:ApiKey"]!,
+    SampleRate = sampleRate
 };
-transcriber.SessionBegins += (sender, args) => Console.WriteLine($"""
-                                                                  Session begins:
-                                                                  - Session ID: {args.Result.SessionId}
-                                                                  - Expires at: {args.Result.ExpiresAt}
-                                                                  """);
 transcriber.PartialTranscriptReceived += (_, args) =>
 {
     // don't do anything if nothing was said
@@ -31,23 +27,29 @@ transcriber.FinalTranscriptReceived += (_, args) =>
     Console.Write(args.Result.Text);
     Console.WriteLine();
 };
-transcriber.ErrorReceived += (_, args) => Console.WriteLine("Error: {0}", args.Error);
-transcriber.Closed += (_, _) => Console.WriteLine("Closed");
+transcriber.ErrorReceived += (_, args) => Console.WriteLine("Real-time error: {0}", args.Error);
+transcriber.Closed += (_, args) => Console.WriteLine("Real-time connection closed: {0} - {1}", args.Code, args.Reason);
 
-await transcriber.ConnectAsync();
+Console.WriteLine("Connecting to real-time transcript service");
+var sessionBeginsMessage = await transcriber.ConnectAsync();
+Console.WriteLine($"""
+                   Session begins:
+                   - Session ID: {sessionBeginsMessage.SessionId}
+                   - Expires at: {sessionBeginsMessage.ExpiresAt}
+                   """);
 
-using var waveIn = new WaveInEvent()
-{
-    WaveFormat = WaveFormat.CreateCustomFormat(
-        tag: WaveFormatEncoding.Pcm,
-        sampleRate: 16_000,
-        channels: 1,
-        averageBytesPerSecond: 16_000,
-        blockAlign: 2,
-        bitsPerSample: 16
-    )
-};
+// Create a pcm_s16le format with a sample rate of 16 kHz.
+var pcmFormat = WaveFormat.CreateCustomFormat(
+    tag: WaveFormatEncoding.Pcm,
+    sampleRate: sampleRate,
+    channels: 1,
+    averageBytesPerSecond: 16_000,
+    blockAlign: 2,
+    bitsPerSample: 16
+);
 
+Console.WriteLine("Starting recording");
+using var waveIn = new WaveInEvent { WaveFormat = pcmFormat };
 waveIn.StartRecording();
 
 waveIn.DataAvailable += (s, a) => { transcriber.SendAudioAsync(a.Buffer); };
@@ -55,5 +57,8 @@ waveIn.DataAvailable += (s, a) => { transcriber.SendAudioAsync(a.Buffer); };
 Console.WriteLine("Press any key to exit.");
 Console.ReadKey();
 
+Console.WriteLine("Stopping recording");
 waveIn.StopRecording();
+
+Console.WriteLine("Closing real-time transcript connection");
 await transcriber.CloseAsync();
