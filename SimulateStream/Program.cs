@@ -22,17 +22,17 @@ transcriber.ErrorReceived += (_, args) => Console.WriteLine("Error: {0}", args.E
 transcriber.Closed += (_, _) => Console.WriteLine("Closed");
 
 await transcriber.ConnectAsync();
-await SendAudio();
+await SendAudioAsync();
 await transcriber.CloseAsync();
 
 // Mock of streaming audio from a microphone
-async Task SendAudio()
+async Task SendAudioAsync()
 {
     await using var fileStream = File.OpenRead("./gore-short.wav");
     var audio = new byte[8192 * 2];
     while (fileStream.Read(audio, 0, audio.Length) > 0)
     {
-        await transcriber.SendAudio(audio);
+        await transcriber.SendAudioAsync(audio);
         await Task.Delay(300);
     }
 }

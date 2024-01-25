@@ -416,14 +416,14 @@ namespace Lib
         /// </summary>
         /// <param name="audio">Audio to transcribe</param>
         /// <returns></returns>
-        public Task SendAudio(ReadOnlyMemory<byte> audio) => SendAudio(audio, CancellationToken.None);
+        public Task SendAudioAsync(ReadOnlyMemory<byte> audio) => SendAudioAsync(audio, CancellationToken.None);
 
         /// <summary>
         /// Send audio to the real-time service.
         /// </summary>
         /// <param name="audio">Audio to transcribe</param>
         /// <param name="ct">Token to cancel the send operation.</param>
-        public async Task SendAudio(ReadOnlyMemory<byte> audio, CancellationToken ct)
+        public async Task SendAudioAsync(ReadOnlyMemory<byte> audio, CancellationToken ct)
             => await _socket.SendAsync(audio, WebSocketMessageType.Binary, true, ct)
                 .ConfigureAwait(false);
 
@@ -432,14 +432,14 @@ namespace Lib
         /// </summary>
         /// <param name="audio">Audio to transcribe</param>
         /// <returns></returns>
-        public Task SendAudio(ArraySegment<byte> audio) => SendAudio(audio, CancellationToken.None);
+        public Task SendAudioAsync(ArraySegment<byte> audio) => SendAudioAsync(audio, CancellationToken.None);
 
         /// <summary>
         /// Send audio to the real-time service.
         /// </summary>
         /// <param name="audio">Audio to transcribe</param>
         /// <param name="ct">Token to cancel the send operation.</param>
-        public async Task SendAudio(ArraySegment<byte> audio, CancellationToken ct)
+        public async Task SendAudioAsync(ArraySegment<byte> audio, CancellationToken ct)
             => await _socket.SendAsync(audio, WebSocketMessageType.Binary, true, ct)
                 .ConfigureAwait(false);
 

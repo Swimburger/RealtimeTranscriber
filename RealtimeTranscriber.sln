@@ -1,8 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cli", "Cli\Cli.csproj", "{D4550219-F9B2-4F97-A772-9F28105F4605}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimulateStream", "SimulateStream\SimulateStream.csproj", "{D4550219-F9B2-4F97-A772-9F28105F4605}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lib", "Lib\Lib.csproj", "{C7342DFB-7BB2-4265-AB11-BC2DEB0B2B2A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{3BC9D4BC-4E33-45F1-9CBA-8D10CEEB157C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicrophoneStream", "MicrophoneStream\MicrophoneStream.csproj", "{F5D50342-F633-419C-BCC4-9065CDA69598}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +22,13 @@ Global
 		{C7342DFB-7BB2-4265-AB11-BC2DEB0B2B2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7342DFB-7BB2-4265-AB11-BC2DEB0B2B2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7342DFB-7BB2-4265-AB11-BC2DEB0B2B2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5D50342-F633-419C-BCC4-9065CDA69598}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5D50342-F633-419C-BCC4-9065CDA69598}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5D50342-F633-419C-BCC4-9065CDA69598}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5D50342-F633-419C-BCC4-9065CDA69598}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F5D50342-F633-419C-BCC4-9065CDA69598} = {3BC9D4BC-4E33-45F1-9CBA-8D10CEEB157C}
+		{D4550219-F9B2-4F97-A772-9F28105F4605} = {3BC9D4BC-4E33-45F1-9CBA-8D10CEEB157C}
 	EndGlobalSection
 EndGlobal
