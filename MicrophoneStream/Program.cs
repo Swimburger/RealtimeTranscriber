@@ -1,6 +1,12 @@
-﻿using Lib;
+﻿using System.Runtime.InteropServices;
+using Lib;
 using Microsoft.Extensions.Configuration;
 using NAudio.Wave;
+
+if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+{
+    throw new Exception("Recording microphone with NAudio is only supported on Windows.");
+}
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
